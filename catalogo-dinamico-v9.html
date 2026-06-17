@@ -3,42 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Catálogo Tu Dulce Día</title>
+  <meta name="robots" content="noindex,nofollow">
+  <meta http-equiv="refresh" content="0; url=./">
+  <title>Tu Dulce Día | Catálogo</title>
   <style>
-    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff8ec;color:#563820;min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;background:#fffdf8;border:1px solid #ead8bd;border-radius:24px;padding:24px;box-shadow:0 14px 34px #56382022;text-align:center}.loader{width:42px;height:42px;border:5px solid #ead8bd;border-top-color:#b8653b;border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff8ec;color:#563820;min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;background:#fffdf8;border:1px solid #ead8bd;border-radius:24px;padding:24px;box-shadow:0 14px 34px #56382022;text-align:center}a{display:inline-flex;margin-top:12px;background:#b8653b;color:#fff;text-decoration:none;font-weight:900;padding:12px 16px;border-radius:999px}
   </style>
 </head>
 <body>
   <main class="card">
-    <div class="loader"></div>
-    <h1>Cargando catálogo…</h1>
-    <p>Estamos preparando el catálogo actualizado de Tu Dulce Día.</p>
+    <h1>Abriendo catálogo…</h1>
+    <p>Te estamos llevando al link limpio del catálogo público.</p>
+    <a href="./">Abrir catálogo</a>
   </main>
-  <script>
-    const reemplazos = [
-      [/Tu Dulcedía/g, 'Tu Dulce Día'],
-      [/Tu Dulcedia/g, 'Tu Dulce Día'],
-      [/Tu Dulce D[ií]a/g, 'Tu Dulce Día'],
-      [/AKfycbzmPICimq95KQ4GLloWbgeoonhTWBjzUM7J7kMbz32r9qiooqzC_MY4e2IADroA8Rnl/g, 'AKfycby92UZyqaJJMNdu5jzDIvHjALOvqVG2sr1PxvLvod19v5ky9cXO4mBSjfceJ1Mh-Rg'],
-      [/Quisiera confirmar disponibilidad\./g, 'Método de pago: ${document.getElementById("pay") ? document.getElementById("pay").value : "No indicado"}. Quisiera confirmar disponibilidad.'],
-      [/<a class="btn secondary" href="admin-dashboard\.html">Admin<\/a>/g, ''],
-      [/<a class="btn secondary" href="\.\/">Catálogo actual<\/a>/g, ''],
-      [/<a class="btn green"[^>]*>Consulta por WhatsApp<\/a>/g, ''],
-      [/<a id="finalWhatsapp" class="btn green big-whatsapp" target="_blank" rel="noopener">Consultar por WhatsApp<\/a>/g, '<a id="finalWhatsapp" class="btn green big-whatsapp" target="_blank" rel="noopener">Consultar por WhatsApp</a><a class="btn secondary big-whatsapp" href="./" style="background:#f1dfc8;color:#563820">Volver al catálogo</a>'],
-      [/56954226146/g, '56978496366'],
-      [/\+56 9 5422 6146/g, '+56 9 7849 6366'],
-      [/9 5422 6146/g, '9 7849 6366'],
-      [/mat\.echeverria@gmail\.com/g, 'tudulcediacl@gmail.com']
-    ];
-    fetch('./catalogo-dinamico-v8.html', {cache:'no-store'})
-      .then(r => r.text())
-      .then(html => {
-        reemplazos.forEach(([oldValue, newValue]) => { html = html.replace(oldValue, newValue); });
-        document.open();
-        document.write(html);
-        document.close();
-      })
-      .catch(() => { document.body.innerHTML = '<main class="card"><h1>No pudimos cargar el catálogo</h1><p>Intenta nuevamente en unos minutos.</p></main>'; });
-  </script>
+  <script>location.replace("./" + location.search);</script>
 </body>
 </html>
