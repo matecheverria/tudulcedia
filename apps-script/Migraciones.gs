@@ -3,6 +3,25 @@
  * Estas funciones no borran pedidos: reordenan columnas preservando datos por encabezado.
  */
 
+const ORDEN_OPERATIVO_HOJA_PEDIDOS = [
+  "Folio pedido",
+  "Estado",
+  "Estado de pago",
+  "Teléfono",
+  "Nombre cliente",
+  "Fecha solicitada",
+  "Productos seleccionados",
+  "Total estimado",
+  "Método de pago",
+  "Requiere datos transferencia",
+  "Tipo entrega",
+  "Observación",
+  "Fecha/hora registro",
+  "Origen",
+  "Indicación de pago",
+  "Detalle JSON"
+];
+
 function reordenarHojaPedidos() {
   const libro = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const hoja = obtenerHojaPedidos_(libro);
@@ -10,7 +29,7 @@ function reordenarHojaPedidos() {
   hoja.setFrozenRows(1);
   hoja.setFrozenColumns(1);
   hoja.autoResizeColumns(1, hoja.getLastColumn());
-  return "Hoja Pedidos reordenada correctamente. Folio pedido quedó como primera columna.";
+  return "Hoja Pedidos reordenada correctamente: folio, estados, teléfono y luego el resto de campos.";
 }
 
 function reordenarColumnasPedidos_(hoja) {
@@ -22,11 +41,15 @@ function reordenarColumnasPedidos_(hoja) {
     return String(valor || "").trim();
   });
 
-  const extras = encabezadosActuales.filter(function(nombre) {
-    return nombre && COLUMNAS.indexOf(nombre) === -1;
+  const columnasBase = ORDEN_OPERATIVO_HOJA_PEDIDOS.filter(function(nombre) {
+    return nombre;
   });
 
-  const encabezadosFinales = COLUMNAS.concat(extras);
+  const extras = encabezadosActuales.filter(function(nombre) {
+    return nombre && columnasBase.indexOf(nombre) === -1;
+  });
+
+  const encabezadosFinales = columnasBase.concat(extras);
   const indiceActual = {};
   encabezadosActuales.forEach(function(nombre, indice) {
     if (nombre) indiceActual[nombre] = indice;
