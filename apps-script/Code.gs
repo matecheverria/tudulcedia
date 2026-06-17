@@ -6,7 +6,8 @@ const CONFIG = {
   NOMBRE_HOJA_HISTORIAL: "Historial pedidos",
   ESTADO_INICIAL: "Pendiente",
   EMAIL_ALERTA: "mat.echeverria@gmail.com",
-  WHATSAPP_COMPROBANTE: "+56 9 5422 6146"
+  WHATSAPP_COMPROBANTE: "+56 9 5422 6146",
+  MINUTOS_ANTI_DUPLICADO: 15
 };
 
 const COLUMNAS = [
@@ -41,28 +42,56 @@ function doPost(e) {
     lock.waitLock(10000);
     const contenido = e && e.postData && e.postData.contents ? e.postData.contents : "";
     if (!contenido) throw new Error("No se recibió contenido en el POST.");
+
     const pedido = JSON.parse(contenido);
     validarPedido_(pedido);
+
     const libro = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
     const hoja = obtenerHojaPedidos_(libro);
-    const filaPedido = hoja.getLastRow() + 1;
-    const folioPedido = generarFolio_(filaPedido);
-    const productos = Array.isArray(pedido.productosSeleccionados) ? pedido.productosSeleccionados : [];
-    const productosTexto = productos.map(function(producto) {
-      const nombre = producto.nombre || "Producto sin nombre";
-      const cantidad = Number(producto.cantidad || 1);
-      const precio = Number(producto.precio || 0);
-      const subtotal = Number(producto.subtotal || precio * cantidad);
-      return nombre + " x " + cantidad + " - Unitario $" + precio + " - Subtotal $" + subtotal;
-    }).join(" | ");
+    const catalogo = obtenerMapaProductosCatalogo_();
+    const productos = normalizarProductosPedido_(pedido.productosSeleccionados, catalogo);
+    const totalCalculado = productos.reduce(function(total, producto) { return total + producto.subtotal; }, 0);
     const metodoPago = pedido.metodoPago || "Transferencia bancaria";
     const requiereDatosTransferencia = pedido.requiereDatosTransferencia === true || metodoPago === "Transferencia bancaria";
     const estadoPago = pedido.estadoPago || (metodoPago === "Transferencia bancaria" ? "Pendiente de comprobante" : "Pago al retirar");
     const estadoPedido = CONFIG.ESTADO_INICIAL;
     const estadoOperativo = calcularEstadoOperativo_(estadoPedido, estadoPago);
     const indicacionPago = pedido.indicacionPago || (metodoPago === "Transferencia bancaria" ? "Enviar datos de transferencia por WhatsApp después de confirmar disponibilidad y solicitar comprobante al " + CONFIG.WHATSAPP_COMPROBANTE + "." : "Cliente pagará al retirar o recibir el pedido.");
-    const tipoEntrega = pedido.notaEntrega || (pedido.entregaSeparada ? "Cliente solicita entrega separada." : "Pedido con entrega única.");
-    const detallePedido = Object.assign({}, pedido, {folioPedido, metodoPago, estadoPago, estado: estadoPedido, estadoOperativo, requiereDatosTransferencia, indicacionPago, tipoEntrega});
+    const tipoEntrega = pedido.notaEntrega || pedido.tipoEntrega || (pedido.entregaSeparada ? "Cliente solicita entrega separada: galletas antes y pan cuando esté listo. Coordinar manualmente." : "Pedido con entrega única.");
+    const firmaPedido = generarFirmaPedido_(pedido, productos, totalCalculado, metodoPago, tipoEntrega);
+    const duplicado = buscarPedidoDuplicadoReciente_(hoja, firmaPedido, CONFIG.MINUTOS_ANTI_DUPLICADO);
+
+    if (duplicado) {
+      return responderJson_({
+        exito: true,
+        duplicado: true,
+        mensaje: "Pedido duplicado reciente detectado. No se creó un nuevo registro.",
+        folio: duplicado.folio,
+        fila: duplicado.fila
+      });
+    }
+
+    const filaPedido = hoja.getLastRow() + 1;
+    const folioPedido = generarFolio_(filaPedido);
+    const productosTexto = productos.map(function(producto) {
+      return producto.nombre + " x " + producto.cantidad + " - Unitario $" + producto.precio + " - Subtotal $" + producto.subtotal;
+    }).join(" | ");
+
+    const detallePedido = Object.assign({}, pedido, {
+      folioPedido: folioPedido,
+      productosSeleccionados: productos,
+      totalEstimado: totalCalculado,
+      metodoPago: metodoPago,
+      estadoPago: estadoPago,
+      estado: estadoPedido,
+      estadoOperativo: estadoOperativo,
+      requiereDatosTransferencia: requiereDatosTransferencia,
+      indicacionPago: indicacionPago,
+      tipoEntrega: tipoEntrega,
+      notaEntrega: tipoEntrega,
+      firmaPedido: firmaPedido
+    });
+
     escribirFilaPorEncabezado_(hoja, {
       "Folio pedido": folioPedido,
       "Estado": estadoPedido,
@@ -72,7 +101,7 @@ function doPost(e) {
       "Nombre cliente": pedido.nombreCliente,
       "Fecha solicitada": pedido.fechaSolicitada,
       "Productos seleccionados": productosTexto,
-      "Total estimado": Number(pedido.totalEstimado || 0),
+      "Total estimado": totalCalculado,
       "Método de pago": metodoPago,
       "Requiere datos transferencia": requiereDatosTransferencia ? "Sí" : "No",
       "Tipo entrega": tipoEntrega,
@@ -86,8 +115,9 @@ function doPost(e) {
       "Indicación de pago": indicacionPago,
       "Detalle JSON": JSON.stringify(detallePedido)
     });
+
     try { enviarAlertaPedido_(detallePedido, productosTexto, filaPedido); } catch (errorAlerta) { console.error(errorAlerta.message); }
-    return responderJson_({exito:true,mensaje:"Pedido registrado correctamente.",folio:folioPedido,fila:filaPedido});
+    return responderJson_({exito:true,mensaje:"Pedido registrado correctamente.",folio:folioPedido,fila:filaPedido,total:totalCalculado});
   } catch (error) {
     return responderJson_({exito:false,mensaje:error.message || "Error desconocido al registrar el pedido."});
   } finally {
@@ -223,6 +253,81 @@ function calcularEstadoOperativo_(estado, pago) {
   return "Pendiente de confirmación";
 }
 
+function obtenerMapaProductosCatalogo_() {
+  const libro = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const hoja = libro.getSheetByName("Productos");
+  const mapa = {};
+  if (!hoja || hoja.getLastRow() < 2) return mapa;
+  const valores = hoja.getRange(2, 1, hoja.getLastRow() - 1, Math.min(hoja.getLastColumn(), 8)).getValues();
+  valores.forEach(function(fila) {
+    const id = String(fila[0] || "").trim();
+    if (!id) return;
+    mapa[id] = { nombre: fila[1] || id, categoria: fila[2] || "", precio: Number(fila[3] || 0), activo: String(fila[4] || "Sí") };
+  });
+  return mapa;
+}
+
+function normalizarProductosPedido_(productos, catalogo) {
+  if (!Array.isArray(productos) || !productos.length) throw new Error("El pedido no tiene productos seleccionados.");
+  return productos.map(function(producto) {
+    const id = String(producto.id || "").trim();
+    const info = id && catalogo[id] ? catalogo[id] : {};
+    const cantidad = Math.max(1, Math.floor(Number(producto.cantidad || 1)));
+    const precio = Number(info.precio || producto.precio || 0);
+    const subtotal = precio * cantidad;
+    if (!precio || precio < 0) throw new Error("Precio inválido para producto " + (id || producto.nombre || "sin ID") + ".");
+    return {
+      id: id,
+      nombre: info.nombre || producto.nombre || "Producto sin nombre",
+      categoria: info.categoria || producto.categoria || "",
+      precio: precio,
+      cantidad: cantidad,
+      subtotal: subtotal
+    };
+  });
+}
+
+function generarFirmaPedido_(pedido, productos, total, metodoPago, tipoEntrega) {
+  const base = {
+    nombre: String(pedido.nombreCliente || "").trim().toLowerCase(),
+    telefono: String(pedido.telefonoCliente || "").replace(/\D/g, ""),
+    fecha: String(pedido.fechaSolicitada || "").trim(),
+    metodoPago: String(metodoPago || "").trim(),
+    entregaSeparada: pedido.entregaSeparada === true,
+    tipoEntrega: String(tipoEntrega || "").trim(),
+    total: Number(total || 0),
+    productos: productos.map(function(p) { return [p.id, p.cantidad, p.precio]; }).sort()
+  };
+  return Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, JSON.stringify(base))).slice(0, 32);
+}
+
+function buscarPedidoDuplicadoReciente_(hoja, firma, minutos) {
+  const mapa = obtenerMapaEncabezados_(hoja);
+  const colJson = mapa["Detalle JSON"];
+  const colFolio = mapa["Folio pedido"];
+  const colFecha = mapa["Fecha/hora registro"];
+  const last = hoja.getLastRow();
+  if (!firma || !colJson || last < 2) return null;
+  const start = Math.max(2, last - 40);
+  const valores = hoja.getRange(start, 1, last - start + 1, hoja.getLastColumn()).getValues();
+  const ahora = new Date().getTime();
+  for (let i = valores.length - 1; i >= 0; i--) {
+    const fila = valores[i];
+    const fecha = colFecha ? fila[colFecha - 1] : null;
+    if (Object.prototype.toString.call(fecha) === "[object Date]") {
+      const minutosDiff = (ahora - fecha.getTime()) / 60000;
+      if (minutosDiff > minutos) continue;
+    }
+    try {
+      const detalle = JSON.parse(fila[colJson - 1] || "{}");
+      if (detalle.firmaPedido === firma) {
+        return { fila: start + i, folio: fila[colFolio - 1] || detalle.folioPedido || "" };
+      }
+    } catch (error) {}
+  }
+  return null;
+}
+
 function enviarAlertaPedido_(pedido, productosTexto, filaPedido) {
   if (!CONFIG.EMAIL_ALERTA) return;
   const urlSheet = "https://docs.google.com/spreadsheets/d/" + CONFIG.SPREADSHEET_ID + "/edit";
@@ -237,7 +342,7 @@ function enviarAlertaPedido_(pedido, productosTexto, filaPedido) {
   MailApp.sendEmail({to:CONFIG.EMAIL_ALERTA,subject:asunto,body:cuerpo,htmlBody:html,name:"Tu Dulcedía Pedidos"});
 }
 
-function validarPedido_(pedido) { if(!pedido||typeof pedido!=="object") throw new Error("El pedido recibido no es válido."); if(!pedido.nombreCliente||!String(pedido.nombreCliente).trim()) throw new Error("Falta el nombre del cliente."); if(!pedido.fechaSolicitada) throw new Error("Falta la fecha solicitada."); if(!Array.isArray(pedido.productosSeleccionados)||!pedido.productosSeleccionados.length) throw new Error("El pedido no tiene productos seleccionados."); if(pedido.totalEstimado===undefined||pedido.totalEstimado===null||isNaN(Number(pedido.totalEstimado))) throw new Error("El total estimado no es válido."); }
+function validarPedido_(pedido) { if(!pedido||typeof pedido!=="object") throw new Error("El pedido recibido no es válido."); if(!pedido.nombreCliente||!String(pedido.nombreCliente).trim()) throw new Error("Falta el nombre del cliente."); if(!pedido.fechaSolicitada) throw new Error("Falta la fecha solicitada."); if(!Array.isArray(pedido.productosSeleccionados)||!pedido.productosSeleccionados.length) throw new Error("El pedido no tiene productos seleccionados."); }
 function generarFolio_(filaPedido) { return "TD-" + String(Math.max(1, filaPedido - 1)).padStart(4,"0"); }
 function normalizarTelefonoWhatsapp_(telefono) { if(!telefono)return""; let x=String(telefono).replace(/\D/g,""); if(!x)return""; if(x.startsWith("56"))return x; if(x.startsWith("9")&&x.length===9)return"56"+x; if(x.startsWith("0"))x=x.replace(/^0+/,""); return x.length>=8&&x.length<=9?"56"+x:x; }
 function obtenerValorFila_(fila, indice, col) { const p=indice[col]; return p===undefined?"":fila[p]; }
