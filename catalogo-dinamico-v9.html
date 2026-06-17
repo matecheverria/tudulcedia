@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Catálogo Tu Dulce Día</title>
   <style>
-    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff8ec;color:#563820;min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;background:#fffdf8;border:1px solid #ead8bd;border-radius:24px;padding:24px;box-shadow:0 14px 34px #56382022;text-align:center}.loader{width:42px;height:42px;border:5px solid #ead8bd;border-top-color:#b8653b;border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}a{color:#8f492b;font-weight:900}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff8ec;color:#563820;min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:560px;background:#fffdf8;border:1px solid #ead8bd;border-radius:24px;padding:24px;box-shadow:0 14px 34px #56382022;text-align:center}.loader{width:42px;height:42px;border:5px solid #ead8bd;border-top-color:#b8653b;border-radius:50%;margin:0 auto 16px;animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -13,7 +13,6 @@
     <div class="loader"></div>
     <h1>Cargando catálogo…</h1>
     <p>Estamos preparando el catálogo actualizado de Tu Dulce Día.</p>
-    <p><a href="./catalogo-dinamico-v8.html">Abrir versión base</a></p>
   </main>
   <script>
     const reemplazos = [
@@ -22,6 +21,8 @@
       [/Tu Dulce D[ií]a/g, 'Tu Dulce Día'],
       [/AKfycbzmPICimq95KQ4GLloWbgeoonhTWBjzUM7J7kMbz32r9qiooqzC_MY4e2IADroA8Rnl/g, 'AKfycby92UZyqaJJMNdu5jzDIvHjALOvqVG2sr1PxvLvod19v5ky9cXO4mBSjfceJ1Mh-Rg'],
       [/Quisiera confirmar disponibilidad\./g, 'Método de pago: ${document.getElementById("pay") ? document.getElementById("pay").value : "No indicado"}. Quisiera confirmar disponibilidad.'],
+      [/<a class="btn secondary" href="admin-dashboard\.html">Admin<\/a>/g, ''],
+      [/<a class="btn secondary" href="\.\/">Catálogo actual<\/a>/g, ''],
       [/56954226146/g, '56978496366'],
       [/\+56 9 5422 6146/g, '+56 9 7849 6366'],
       [/9 5422 6146/g, '9 7849 6366'],
@@ -35,7 +36,7 @@
         document.write(html);
         document.close();
       })
-      .catch(() => { location.replace('./catalogo-dinamico-v8.html' + location.search); });
+      .catch(() => { document.body.innerHTML = '<main class="card"><h1>No pudimos cargar el catálogo</h1><p>Intenta nuevamente en unos minutos.</p></main>'; });
   </script>
 </body>
 </html>
