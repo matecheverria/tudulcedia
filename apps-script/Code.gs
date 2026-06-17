@@ -4,6 +4,7 @@ const CONFIG = {
   SPREADSHEET_ID: "1t5AAjWH1Vudf53flzfoByCMGqvDbWlBEzfVApSoWrTw",
   NOMBRE_HOJA: "Pedidos",
   NOMBRE_HOJA_HISTORIAL: "Historial pedidos",
+  NOMBRE_HOJA_CONFIGURACION: "Configuracion",
   ESTADO_INICIAL: "Pendiente",
   EMAIL_ALERTA: "tudulcediacl@gmail.com",
   WHATSAPP_COMPROBANTE: "+56 9 7849 6366",
@@ -17,6 +18,15 @@ const COLUMNAS = [
   "Origen", "Indicación de pago", "Detalle JSON"
 ];
 const COLUMNAS_HISTORIAL = ["Fecha/hora cambio", "Folio pedido", "Campo", "Valor anterior", "Valor nuevo", "Origen", "Observación interna"];
+const COLUMNAS_CONFIGURACION = ["Clave", "Valor"];
+const CLAVES_TRANSFERENCIA = [
+  "TRANSFERENCIA_NOMBRE",
+  "TRANSFERENCIA_RUT",
+  "TRANSFERENCIA_BANCO",
+  "TRANSFERENCIA_TIPO_CUENTA",
+  "TRANSFERENCIA_NUMERO_CUENTA",
+  "TRANSFERENCIA_EMAIL"
+];
 const ESTADOS_PEDIDO = ["Pendiente", "Confirmado", "En preparación", "Listo para retiro/entrega", "Entregado", "Cancelado"];
 const ESTADOS_PAGO = ["Pendiente de comprobante", "Comprobante recibido", "Pagado", "Pago al retirar"];
 
@@ -27,6 +37,7 @@ function doGet(e) {
     if (action === "catalogoPublico") return responderJsonp_(obtenerCatalogoPublico_(), p.callback);
     if (action === "adminListarPedidos") { validarAdmin_(p.token); return responderJsonp_(adminListarPedidos_(), p.callback); }
     if (action === "adminActualizarPedido") { validarAdmin_(p.token); return responderJsonp_(adminActualizarPedido_(p), p.callback); }
+    if (action === "adminAbrirWhatsapp") { validarAdmin_(p.token); return responderJsonp_(adminAbrirWhatsapp_(p), p.callback); }
     if (action === "adminListarCatalogo") { validarAdmin_(p.token); return responderJsonp_(adminListarCatalogo_(), p.callback); }
     if (action === "adminGuardarProducto") { validarAdmin_(p.token); return responderJsonp_(adminGuardarProducto_(p), p.callback); }
     if (action === "adminGuardarDisponibilidad") { validarAdmin_(p.token); return responderJsonp_(adminGuardarDisponibilidad_(p), p.callback); }
@@ -129,10 +140,11 @@ function migrarHojaPedidos() {
   const libro = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const hoja = obtenerHojaPedidos_(libro);
   obtenerHojaHistorial_(libro);
+  obtenerHojaConfiguracion_(libro);
   hoja.setFrozenRows(1);
   hoja.setFrozenColumns(1);
   hoja.autoResizeColumns(1, hoja.getLastColumn());
-  return "Hoja migrada correctamente.";
+  return "Hoja migrada correctamente. Configuracion creada/validada y oculta.";
 }
 
 function probarEnvioCorreo() {
@@ -235,6 +247,91 @@ function adminActualizarPedido_(p) {
   return { exito: true, mensaje: "Pedido actualizado correctamente.", folio: folio, estado: estadoFinal, estadoPago: pagoFinal, estadoOperativo: opFinal };
 }
 
+function adminAbrirWhatsapp_(p) {
+  const folio = String(p.folio || "").trim();
+  if (!folio) throw new Error("Falta el folio del pedido.");
+  const libro = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const hoja = obtenerHojaPedidos_(libro);
+  const fila = buscarFilaPorFolio_(hoja, folio);
+  if (!fila) throw new Error("No se encontró el pedido " + folio + ".");
+  const mapa = obtenerMapaEncabezados_(hoja);
+  const pedido = leerPedidoWhatsapp_(hoja, fila, mapa);
+  const telefono = normalizarTelefonoWhatsapp_(pedido.telefonoCliente);
+  if (!telefono) throw new Error("El pedido " + folio + " no tiene teléfono válido para WhatsApp.");
+  const transferencia = esMetodoTransferenciaWhatsapp_(pedido.metodoPago, pedido.requiereDatosTransferencia);
+  const mensaje = transferencia ? generarMensajeTransferenciaWhatsapp_(pedido) : generarMensajePagoRetirarWhatsapp_(pedido);
+  return { exito: true, folio: folio, telefono: telefono, metodoPago: pedido.metodoPago, transferencia: transferencia, mensaje: mensaje, urlWhatsapp: "https://wa.me/" + telefono + "?text=" + encodeURIComponent(mensaje) };
+}
+
+function leerPedidoWhatsapp_(hoja, fila, mapa) {
+  const estado = obtenerCeldaPorMapa_(hoja, fila, mapa, "Estado") || "Pendiente";
+  const estadoPago = obtenerCeldaPorMapa_(hoja, fila, mapa, "Estado de pago") || "";
+  return {
+    folioPedido: obtenerCeldaPorMapa_(hoja, fila, mapa, "Folio pedido"),
+    estado: estado,
+    estadoPago: estadoPago,
+    estadoOperativo: obtenerCeldaPorMapa_(hoja, fila, mapa, "Estado operativo") || calcularEstadoOperativo_(estado, estadoPago),
+    telefonoCliente: obtenerCeldaPorMapa_(hoja, fila, mapa, "Teléfono"),
+    nombreCliente: obtenerCeldaPorMapa_(hoja, fila, mapa, "Nombre cliente"),
+    totalEstimado: obtenerCeldaPorMapa_(hoja, fila, mapa, "Total estimado"),
+    metodoPago: obtenerCeldaPorMapa_(hoja, fila, mapa, "Método de pago"),
+    requiereDatosTransferencia: obtenerCeldaPorMapa_(hoja, fila, mapa, "Requiere datos transferencia")
+  };
+}
+
+function generarMensajeTransferenciaWhatsapp_(pedido) {
+  const c = obtenerConfiguracionWhatsapp_();
+  const nombre = obtenerConfigValor_(c, "TRANSFERENCIA_NOMBRE", "transferencia_titular", "transferencia_nombre");
+  const rut = obtenerConfigValor_(c, "TRANSFERENCIA_RUT", "transferencia_rut");
+  const banco = obtenerConfigValor_(c, "TRANSFERENCIA_BANCO", "transferencia_banco");
+  const tipoCuenta = obtenerConfigValor_(c, "TRANSFERENCIA_TIPO_CUENTA", "transferencia_tipo_cuenta");
+  const numeroCuenta = obtenerConfigValor_(c, "TRANSFERENCIA_NUMERO_CUENTA", "transferencia_numero_cuenta");
+  const email = obtenerConfigValor_(c, "TRANSFERENCIA_EMAIL", "transferencia_email");
+  const datos = [
+    nombre,
+    rut ? "RUT: " + rut : "",
+    banco,
+    tipoCuenta,
+    numeroCuenta ? "Número de cuenta: " + numeroCuenta : "",
+    email
+  ].filter(Boolean).join("\n");
+  if (!datos || !nombre || !banco || !numeroCuenta) throw new Error("Faltan datos de transferencia en la hoja Configuracion.");
+  return "Hola " + (pedido.nombreCliente || "") + ", te escribimos por tu pedido " + pedido.folioPedido + ". Estado actual: Pendiente de pago. Total: " + formatoPesoWhatsapp_(pedido.totalEstimado) + ". Adjuntamos los datos de transferencia. Una vez realizada, envíanos el comprobante por este mismo WhatsApp.\n\n" + datos;
+}
+
+function generarMensajePagoRetirarWhatsapp_(pedido) {
+  return "Hola " + (pedido.nombreCliente || "") + ", te escribimos por tu pedido " + pedido.folioPedido + ". Estado actual: " + (pedido.estadoOperativo || calcularEstadoOperativo_(pedido.estado, pedido.estadoPago)) + ". Total: " + formatoPesoWhatsapp_(pedido.totalEstimado) + ". El pedido figura como pago al retirar/recibir. Cualquier duda nos escribes por acá.";
+}
+
+function obtenerConfiguracionWhatsapp_() {
+  const libro = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const hoja = obtenerHojaConfiguracion_(libro);
+  const last = hoja.getLastRow();
+  if (last < 2) throw new Error("Faltan datos de transferencia en la hoja Configuracion.");
+  const valores = hoja.getRange(2, 1, last - 1, 2).getValues();
+  const config = {};
+  valores.forEach(function(fila) {
+    const clave = String(fila[0] || "").trim();
+    if (clave) config[clave] = String(fila[1] || "").trim();
+  });
+  return config;
+}
+
+function obtenerConfigValor_(config) {
+  for (let i = 1; i < arguments.length; i++) {
+    const clave = arguments[i];
+    if (config[clave]) return config[clave];
+  }
+  return "";
+}
+
+function esMetodoTransferenciaWhatsapp_(metodo, requiere) {
+  const m = normalizarTextoWhatsapp_(metodo), r = normalizarTextoWhatsapp_(requiere);
+  return m.indexOf("transferencia") !== -1 || r === "si" || r === "sí" || r === "true";
+}
+function formatoPesoWhatsapp_(valor) { return "$" + Number(valor || 0).toLocaleString("es-CL"); }
+function normalizarTextoWhatsapp_(valor) { return String(valor || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
+
 function validarAdmin_(token) {
   const conf = PropertiesService.getScriptProperties().getProperty("ADMIN_TOKEN");
   if (!conf) throw new Error("Falta configurar ADMIN_TOKEN en Propiedades de secuencia de comandos.");
@@ -253,6 +350,20 @@ function obtenerHojaHistorial_(libro) {
   if (!hoja) hoja = libro.insertSheet(CONFIG.NOMBRE_HOJA_HISTORIAL);
   asegurarColumnas_(hoja, COLUMNAS_HISTORIAL);
   hoja.setFrozenRows(1);
+  return hoja;
+}
+
+function obtenerHojaConfiguracion_(libro) {
+  let hoja = libro.getSheetByName(CONFIG.NOMBRE_HOJA_CONFIGURACION);
+  if (!hoja) hoja = libro.insertSheet(CONFIG.NOMBRE_HOJA_CONFIGURACION);
+  if (hoja.getLastRow() === 0) {
+    const filas = [COLUMNAS_CONFIGURACION].concat(CLAVES_TRANSFERENCIA.map(function(clave) { return [clave, ""]; }));
+    hoja.getRange(1, 1, filas.length, 2).setValues(filas);
+  } else {
+    hoja.getRange(1, 1, 1, 2).setValues([COLUMNAS_CONFIGURACION]);
+  }
+  hoja.setFrozenRows(1);
+  hoja.hideSheet();
   return hoja;
 }
 
