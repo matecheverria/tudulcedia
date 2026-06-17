@@ -34,8 +34,10 @@
 
     const cssFinal = `
       #orderFlow .actions a.btn.green{display:none!important}
+      .mobile-cart-bar{display:none}
+      .ux-stepper{display:none}
       @media(max-width:640px){
-        body{font-size:15px}
+        body{font-size:15px;padding-bottom:96px!important}
         .wrap{width:min(100% - 14px,1120px)!important}
         .hero{padding:10px 0 2px!important}
         .box{padding:14px!important;margin:9px 0!important;border-radius:18px!important}
@@ -43,18 +45,24 @@
         h2{font-size:1.25rem!important;margin:.15em 0 .35em!important}
         .muted{font-size:.9rem!important;line-height:1.35!important}
         .products{grid-template-columns:1fr!important;gap:9px!important}
-        .product{padding:11px 12px!important;border-radius:16px!important;gap:7px!important;box-shadow:none!important}
+        .product{position:relative!important;padding:11px 12px!important;border-radius:16px!important;gap:6px!important;box-shadow:none!important;min-height:auto!important}
         .product:hover{transform:none!important}
+        .product.selected{border-width:2px!important;background:#fff4e8!important}
         .top{display:grid!important;grid-template-columns:1fr auto!important;gap:8px!important;align-items:start!important}
-        .product h3{font-size:1rem!important;line-height:1.08!important;margin:0!important}
-        .select-badge{min-width:88px!important;width:auto!important;padding:7px 11px!important;font-size:.82rem!important;border-width:1px!important}
-        .category-row{margin-top:0!important}
-        .category-chip{padding:4px 9px!important;font-size:.76rem!important}
-        .selected-text{font-size:.78rem!important}
-        .desc{font-size:.84rem!important;line-height:1.25!important;margin:0!important}
-        .price{font-size:1.2rem!important;margin:0!important}
-        .qty{grid-template-columns:1fr 78px!important;padding:7px 9px!important;border-radius:12px!important;gap:7px!important}
-        .qty input{padding:8px!important;border-radius:11px!important;text-align:center!important}
+        .product h3{font-size:1rem!important;line-height:1.08!important;margin:0!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+        .select-badge{min-width:82px!important;width:auto!important;padding:7px 10px!important;font-size:.8rem!important;border-width:1px!important}
+        .product.selected .select-badge::before{content:'✓ ';}
+        .category-row{margin-top:0!important;gap:6px!important}
+        .category-chip{padding:4px 9px!important;font-size:.74rem!important}
+        .selected-text{display:none!important}
+        .desc{font-size:.82rem!important;line-height:1.2!important;margin:0!important;display:-webkit-box!important;-webkit-line-clamp:1!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+        .price{font-size:1.16rem!important;margin:0!important;line-height:1.05!important}
+        .product:not(.selected) .qty{display:none!important}
+        .product.selected .qty{display:none!important}
+        .ux-stepper{display:none!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;background:#fffaf1!important;border:1px solid #ead8bd!important;border-radius:999px!important;padding:6px!important;margin-top:2px!important}
+        .product.selected .ux-stepper{display:flex!important}
+        .ux-stepper button{width:38px!important;height:38px!important;min-width:38px!important;padding:0!important;border-radius:50%!important;font-size:1.25rem!important;line-height:1!important;background:#f1dfc8!important;color:#563820!important}
+        .ux-stepper .ux-qty{font-weight:950!important;color:#563820!important;min-width:42px!important;text-align:center!important}
         .product small,.product .muted{font-size:.78rem!important}
         .summary{padding:12px!important;border-radius:16px!important}
         .summary h3{margin:.1em 0 .35em!important}
@@ -64,7 +72,95 @@
         .field textarea{min-height:68px!important}
         .actions{gap:8px!important;margin-top:10px!important}
         button,a.btn{padding:11px 13px!important}
+        .mobile-cart-bar{position:fixed!important;left:10px!important;right:10px!important;bottom:10px!important;z-index:9999!important;display:none!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;background:#442916!important;color:#fff!important;border-radius:22px!important;padding:11px 12px!important;box-shadow:0 16px 36px #00000033!important;border:1px solid #ffffff22!important}
+        .mobile-cart-bar.show{display:flex!important}
+        .mobile-cart-info{display:grid!important;gap:2px!important;line-height:1.1!important}
+        .mobile-cart-info strong{font-size:.98rem!important;color:#fff!important}
+        .mobile-cart-info span{font-size:.78rem!important;color:#f1dfc8!important;font-weight:750!important}
+        .mobile-cart-btn{border:0!important;background:#b8653b!important;color:#fff!important;border-radius:999px!important;padding:11px 14px!important;font-weight:950!important;white-space:nowrap!important}
       }
+    `;
+
+    const uxMobileScript = `
+      <script>
+      (function(){
+        const money = new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0});
+        function isMobile(){return window.matchMedia('(max-width: 640px)').matches}
+        function num(v){return Number(String(v||'').replace(/[^0-9]/g,''))||0}
+        function fire(input){input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}))}
+        function cardInput(card){return card.querySelector('.qty input')}
+        function setQty(input,value){input.value=Math.max(1,value);fire(input);setTimeout(update,60)}
+        function ensureBar(){
+          let bar=document.getElementById('mobileCartBar');
+          if(bar)return bar;
+          bar=document.createElement('div');
+          bar.id='mobileCartBar';
+          bar.className='mobile-cart-bar';
+          bar.innerHTML='<div class="mobile-cart-info"><strong id="mobileCartMain">0 productos · $0</strong><span>Resumen de tu pedido</span></div><button type="button" class="mobile-cart-btn">Continuar</button>';
+          document.body.appendChild(bar);
+          bar.querySelector('button').onclick=function(){
+            const target=document.querySelector('#leadNotice')||document.querySelector('#orderFlow section:nth-of-type(2)')||document.querySelector('#send');
+            if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+          };
+          return bar;
+        }
+        function enhanceCards(){
+          document.querySelectorAll('.product').forEach(function(card){
+            if(card.dataset.uxEnhanced)return;
+            const input=cardInput(card);
+            if(!input)return;
+            card.dataset.uxEnhanced='1';
+            const stepper=document.createElement('div');
+            stepper.className='ux-stepper';
+            stepper.innerHTML='<button type="button" aria-label="Quitar">−</button><span class="ux-qty">1</span><button type="button" aria-label="Agregar">+</button>';
+            const qty=card.querySelector('.qty');
+            if(qty)qty.insertAdjacentElement('afterend',stepper); else card.appendChild(stepper);
+            const minus=stepper.children[0], label=stepper.children[1], plus=stepper.children[2];
+            minus.onclick=function(e){
+              e.preventDefault();e.stopPropagation();
+              const v=parseInt(input.value||'1',10)||1;
+              if(v<=1){card.click();setTimeout(update,80);return;}
+              setQty(input,v-1);
+            };
+            plus.onclick=function(e){
+              e.preventDefault();e.stopPropagation();
+              const run=function(){const v=parseInt(input.value||'1',10)||1;setQty(input,v+1)};
+              if(!card.classList.contains('selected')||input.disabled){card.click();setTimeout(run,80);return;}
+              run();
+            };
+          });
+        }
+        function updateSteppers(){
+          document.querySelectorAll('.product').forEach(function(card){
+            const input=cardInput(card), label=card.querySelector('.ux-qty');
+            if(input&&label)label.textContent=String(parseInt(input.value||'1',10)||1);
+          });
+        }
+        function update(){
+          enhanceCards();
+          updateSteppers();
+          const bar=ensureBar();
+          let count=0,total=0;
+          document.querySelectorAll('.product.selected').forEach(function(card){
+            const input=cardInput(card);
+            const q=parseInt(input&&input.value||'1',10)||1;
+            count+=q;
+          });
+          const totalText=document.querySelector('#total')?.textContent?.trim()||'$0';
+          total=num(totalText);
+          const main=document.getElementById('mobileCartMain');
+          if(main)main.textContent=count+' '+(count===1?'producto':'productos')+' · '+money.format(total);
+          bar.classList.toggle('show',isMobile()&&count>0&&!document.querySelector('#finalScreen.show'));
+        }
+        document.addEventListener('click',function(){setTimeout(update,90)},true);
+        document.addEventListener('input',function(){setTimeout(update,40)},true);
+        document.addEventListener('change',function(){setTimeout(update,40)},true);
+        new MutationObserver(function(){setTimeout(update,80)}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','disabled','value']});
+        window.addEventListener('resize',update);
+        setTimeout(update,400);
+        setTimeout(update,1200);
+      })();
+      <\/script>
     `;
 
     fetch('./catalogo-dinamico-v8.html', {cache:'no-store'})
@@ -72,6 +168,7 @@
       .then(html => {
         reemplazos.forEach(([oldValue, newValue]) => { html = html.replace(oldValue, newValue); });
         html = html.replace('</style>', cssFinal + '</style>');
+        html = html.replace('</body>', uxMobileScript + '</body>');
         document.open();
         document.write(html);
         document.close();
