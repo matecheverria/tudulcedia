@@ -4,129 +4,28 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Centro Admin | Tu Dulcedía</title>
+  <title>Centro Admin | Tu Dulce Día</title>
   <style>
-    :root{
-      --bg:#fff8ec;
-      --card:#fffdf8;
-      --line:#ead8bd;
-      --text:#563820;
-      --muted:#7d5b3f;
-      --accent:#b8653b;
-      --accent-dark:#8f492b;
-      --green:#48663f;
-      --cream:#f1dfc8;
-      --shadow:#56382022;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      min-height:100vh;
-      font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
-      background:
-        radial-gradient(circle at top left,#fff2d9 0,#fff2d900 34%),
-        linear-gradient(180deg,var(--bg),#f3e4cb);
-      color:var(--text);
-      padding:24px;
-    }
-    .wrap{width:min(100%,1040px);margin:auto;min-height:calc(100vh - 48px);display:grid;align-content:center;gap:18px}
-    .hero,.panel{
-      background:color-mix(in srgb,var(--card) 92%,white);
-      border:1px solid var(--line);
-      border-radius:30px;
-      box-shadow:0 18px 44px var(--shadow);
-    }
-    .hero{padding:clamp(22px,5vw,40px);display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:end}
-    .eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:var(--cream);font-size:.86rem;font-weight:900;color:var(--accent-dark)}
-    h1{font-size:clamp(2.1rem,7vw,4.6rem);line-height:.92;letter-spacing:-.07em;margin:.28em 0 .18em}
-    p{margin:.4em 0;color:var(--muted);font-weight:650;line-height:1.55}
-    .status{display:grid;gap:10px;background:#ffffffaa;border:1px solid var(--line);border-radius:22px;padding:16px}
-    .status strong{font-size:1.05rem}
-    .status small{color:var(--muted);font-weight:750;line-height:1.45}
-    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-    .card{
-      min-height:158px;
-      display:flex;
-      flex-direction:column;
-      justify-content:space-between;
-      gap:14px;
-      padding:18px;
-      border-radius:24px;
-      text-decoration:none;
-      border:1px solid var(--line);
-      background:var(--card);
-      color:var(--text);
-      box-shadow:0 10px 22px #56382014;
-      transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
-    }
-    .card:hover{transform:translateY(-2px);box-shadow:0 18px 34px #56382024;border-color:#d8ad7d}
-    .card .tag{align-self:flex-start;border-radius:999px;background:var(--cream);padding:5px 9px;font-size:.76rem;font-weight:950;color:var(--accent-dark)}
-    .card strong{font-size:1.12rem;line-height:1.15}
-    .card span{color:var(--muted);font-size:.9rem;font-weight:650;line-height:1.35}
-    .primary{background:var(--accent);color:#fff;border-color:transparent}
-    .primary span,.primary .tag{color:#fff}.primary .tag{background:#ffffff2b}
-    .green{background:var(--green);color:#fff;border-color:transparent}
-    .green span,.green .tag{color:#fff}.green .tag{background:#ffffff2b}
-    .panel{padding:18px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
-    .mini{display:flex;gap:8px;flex-wrap:wrap}
-    .mini a{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:10px 13px;background:var(--cream);color:var(--text);text-decoration:none;font-weight:900;border:1px solid var(--line)}
-    .note{font-size:.9rem;color:var(--muted);font-weight:750}
-    @media(max-width:860px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:560px){body{padding:14px}.wrap{min-height:calc(100vh - 28px)}.grid{grid-template-columns:1fr}.hero,.panel{border-radius:24px}.card{min-height:132px}}
+    :root{--bg:#fff8ec;--card:#fffdf8;--line:#ead8bd;--text:#563820;--muted:#7d5b3f;--accent:#b8653b;--accent-dark:#8f492b;--green:#48663f;--cream:#f1dfc8;--shadow:#56382022;--blue:#315d88}*{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at top left,#fff2d9 0,#fff2d900 34%),linear-gradient(180deg,var(--bg),#f3e4cb);color:var(--text);padding:24px}
+    .wrap{width:min(100%,1040px);margin:auto;min-height:calc(100vh - 48px);display:grid;align-content:center;gap:18px}.hero,.panel{background:color-mix(in srgb,var(--card) 92%,white);border:1px solid var(--line);border-radius:30px;box-shadow:0 18px 44px var(--shadow)}.hero{padding:clamp(22px,5vw,40px);display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:end}.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:var(--cream);font-size:.86rem;font-weight:900;color:var(--accent-dark)}h1{font-size:clamp(2.1rem,7vw,4.6rem);line-height:.92;letter-spacing:-.07em;margin:.28em 0 .18em}p{margin:.4em 0;color:var(--muted);font-weight:650;line-height:1.55}.status{display:grid;gap:10px;background:#ffffffaa;border:1px solid var(--line);border-radius:22px;padding:16px}.status strong{font-size:1.05rem}.status small{color:var(--muted);font-weight:750;line-height:1.45}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .card{min-height:158px;display:flex;flex-direction:column;justify-content:space-between;gap:14px;padding:18px;border-radius:24px;text-decoration:none;border:1px solid var(--line);background:var(--card);color:var(--text);box-shadow:0 10px 22px #56382014;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}.card:hover{transform:translateY(-2px);box-shadow:0 18px 34px #56382024;border-color:#d8ad7d}.card .tag{align-self:flex-start;border-radius:999px;background:var(--cream);padding:5px 9px;font-size:.76rem;font-weight:950;color:var(--accent-dark)}.card strong{font-size:1.12rem;line-height:1.15}.card span{color:var(--muted);font-size:.9rem;font-weight:650;line-height:1.35}.primary{background:var(--accent);color:#fff;border-color:transparent}.primary span,.primary .tag{color:#fff}.primary .tag{background:#ffffff2b}.green{background:var(--green);color:#fff;border-color:transparent}.green span,.green .tag{color:#fff}.green .tag{background:#ffffff2b}.blue{background:#e7f0f8}.blue .tag{color:var(--blue)}.panel{padding:18px;display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.mini{display:flex;gap:8px;flex-wrap:wrap}.mini a{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:10px 13px;background:var(--cream);color:var(--text);text-decoration:none;font-weight:900;border:1px solid var(--line)}.note{font-size:.9rem;color:var(--muted);font-weight:750}
+    @media(max-width:860px){.hero{grid-template-columns:1fr}.grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){body{padding:14px}.wrap{min-height:calc(100vh - 28px)}.grid{grid-template-columns:1fr}.hero,.panel{border-radius:24px}.card{min-height:132px}}
   </style>
 </head>
 <body>
   <main class="wrap">
     <section class="hero" aria-labelledby="title">
-      <div>
-        <span class="eyebrow">Panel privado · Tu Dulcedía</span>
-        <h1 id="title">Centro Admin</h1>
-        <p>Accesos rápidos para operar pedidos, revisar el catálogo y validar la experiencia pública del cliente.</p>
-      </div>
-      <aside class="status" aria-label="Estado del panel">
-        <strong>Versiones activas</strong>
-        <small>Dashboard operativo V2, administrador de catálogo V2 y catálogo dinámico V9.</small>
-        <small>No compartas este enlace ni tu clave admin con clientes.</small>
-      </aside>
+      <div><span class="eyebrow">Panel privado · Tu Dulce Día</span><h1 id="title">Centro Admin</h1><p>Accesos rápidos para operar pedidos, revisar el catálogo y validar la experiencia pública del cliente.</p></div>
+      <aside class="status" aria-label="Estado del panel"><strong>Versiones activas</strong><small>Dashboard operativo V3, administrador de catálogo V2 y catálogo dinámico V9.</small><small>No compartas este enlace ni tu clave admin con clientes.</small></aside>
     </section>
-
     <section class="grid" aria-label="Accesos principales">
-      <a class="card primary" href="./admin-dashboard-v2.html">
-        <span class="tag">Operación</span>
-        <strong>Dashboard operativo</strong>
-        <span>Pedidos, estados, pagos, fechas de control y observación interna.</span>
-      </a>
-
-      <a class="card green" href="./admin-catalogo-v2.html">
-        <span class="tag">Catálogo</span>
-        <strong>Admin catálogo</strong>
-        <span>Gestiona productos, disponibilidad, precios y textos visibles.</span>
-      </a>
-
-      <a class="card" href="./catalogo-dinamico-v9.html">
-        <span class="tag">Cliente</span>
-        <strong>Catálogo dinámico</strong>
-        <span>Vista actual para probar pedidos antes de compartir por WhatsApp.</span>
-      </a>
-
-      <a class="card" href="./">
-        <span class="tag">Público</span>
-        <strong>Catálogo principal</strong>
-        <span>Entrada pública actual publicada en GitHub Pages.</span>
-      </a>
+      <a class="card primary" href="./admin-dashboard-v3.html"><span class="tag">Operación V3</span><strong>Dashboard operativo</strong><span>Pedidos, estados, pagos, método visible y WhatsApp seguro desde backend.</span></a>
+      <a class="card green" href="./admin-catalogo-v2.html"><span class="tag">Catálogo</span><strong>Admin catálogo</strong><span>Gestiona productos, disponibilidad, precios y textos visibles.</span></a>
+      <a class="card blue" href="./catalogo-dinamico-v9.html"><span class="tag">Cliente</span><strong>Catálogo dinámico</strong><span>Vista actual para probar pedidos antes de compartir por WhatsApp.</span></a>
+      <a class="card" href="./"><span class="tag">Público</span><strong>Catálogo principal</strong><span>Entrada pública actual publicada en GitHub Pages.</span></a>
     </section>
-
-    <section class="panel" aria-label="Accesos de compatibilidad">
-      <div>
-        <strong>Accesos compatibles</strong>
-        <div class="note">Mantienen redirecciones antiguas por si algún enlace ya fue compartido.</div>
-      </div>
-      <nav class="mini" aria-label="Enlaces antiguos">
-        <a href="./admin-dashboard.html">Dashboard wrapper</a>
-        <a href="./admin-catalogo.html">Catálogo wrapper</a>
-        <a href="./catalogo-dinamico.html">Dinámico wrapper</a>
-      </nav>
-    </section>
+    <section class="panel" aria-label="Accesos de compatibilidad"><div><strong>Accesos compatibles</strong><div class="note">Mantienen redirecciones antiguas por si algún enlace ya fue compartido.</div></div><nav class="mini" aria-label="Enlaces antiguos"><a href="./admin-dashboard.html">Dashboard wrapper</a><a href="./admin-catalogo.html">Catálogo wrapper</a><a href="./catalogo-dinamico.html">Dinámico wrapper</a></nav></section>
   </main>
 </body>
 </html>
