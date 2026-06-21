@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prueba Supabase Catálogo - Tu Dulce Día</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fff8f3;
+      --card: #ffffff;
+      --text: #3b241c;
+      --muted: #7d6258;
+      --accent: #d9868f;
+      --border: #f0d8cc;
+      --ok: #166534;
+      --bad: #991b1b;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    main {
+      width: min(920px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+    h1 { margin-bottom: 8px; }
+    p { color: var(--muted); }
+    .status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      margin: 18px 0;
+    }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--bad); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 8px 24px rgba(80, 45, 28, .07);
+    }
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+    .price {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .code {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+    pre {
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #2b1a16;
+      color: #fff7ed;
+      padding: 12px;
+      border-radius: 12px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Prueba aislada: catálogo desde Supabase</h1>
+    <p>
+      Esta página solo prueba lectura de productos activos desde Supabase.
+      No registra pedidos y no reemplaza el catálogo productivo.
+    </p>
+
+    <div id="status" class="status">Cargando catálogo...</div>
+    <section id="productos" class="grid"></section>
+    <pre id="debug" hidden></pre>
+  </main>
+
+  <script>
+    const SUPABASE_URL = 'https://uhwaybppsyibiwvqyglr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVod2F5YnBwc3lpYml3dnF5Z2xyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMDYzNTQsImV4cCI6MjA5NzU4MjM1NH0.wX6mcThTf38kSuMYP-wfhRnafbzdMqS-uOc8wZXdmkM';
+
+    const statusEl = document.getElementById('status');
+    const productosEl = document.getElementById('productos');
+    const debugEl = document.getElementById('debug');
+
+    const money = new Intl.NumberFormat('es-CL', {
+      style: 'currency',
+      currency: 'CLP',
+      maximumFractionDigits: 0,
+    });
+
+    async function cargarCatalogo() {
+      const url = `${SUPABASE_URL}/rest/v1/productos?select=codigo,nombre,categoria,precio,descripcion,orden,activo&activo=eq.true&order=orden.asc`;
+
+      const response = await fetch(url, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`${response.status} ${response.statusText}\n${text}`);
+      }
+
+      return response.json();
+    }
+
+    function render(productos) {
+      productosEl.innerHTML = '';
+
+      productos.forEach((producto) => {
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+          <h2>${escapeHtml(producto.nombre)}</h2>
+          <div class="price">${money.format(producto.precio)}</div>
+          <p>${escapeHtml(producto.descripcion || producto.categoria || '')}</p>
+          <div class="code">${escapeHtml(producto.codigo)}</div>
+        `;
+        productosEl.appendChild(card);
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    cargarCatalogo()
+      .then((productos) => {
+        statusEl.className = 'status ok';
+        statusEl.textContent = `OK: ${productos.length} productos activos leídos desde Supabase.`;
+        render(productos);
+      })
+      .catch((error) => {
+        statusEl.className = 'status bad';
+        statusEl.textContent = 'Error leyendo Supabase. Revisa políticas RLS y la anon key.';
+        debugEl.hidden = false;
+        debugEl.textContent = error.message;
+      });
+  </script>
+</body>
+</html>
