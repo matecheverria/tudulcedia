@@ -94,6 +94,16 @@ function clean(value) {
   return String(value == null ? '' : value).replace(/^\uFEFF/, '').trim();
 }
 
+function cleanHistoricalText(value) {
+  return clean(value)
+    .replace(/56978496366/g, '56930210411')
+    .replace(/56954226146/g, '56930210411')
+    .replace(/\+56\s*9\s*7849\s*6366/g, '+56 9 3021 0411')
+    .replace(/\+56\s*9\s*5422\s*6146/g, '+56 9 3021 0411')
+    .replace(/9\s*7849\s*6366/g, '9 3021 0411')
+    .replace(/9\s*5422\s*6146/g, '9 3021 0411');
+}
+
 function normalizeHeader(value) {
   return normalizeText(value)
     .replace(/[^a-z0-9]+/g, '_')
@@ -120,6 +130,7 @@ function normalizeProductName(value) {
   n = n.replace(/nuece\b/g, 'nueces');
   n = n.replace(/ma a madre/g, 'masa madre');
 
+  if (n.includes('super') || n.includes('galleton') || n.includes('150')) return 'super galleton 150 gr vainilla chip';
   if (n.includes('pan') && n.includes('masa madre')) return 'pan masa madre 1 kg aprox.';
   if (n.includes('vainilla') && n.includes('blanco') && n.includes('nueces')) return 'galleta vainilla chips chocolate blanco nueces';
   if (n.includes('vainilla') && n.includes('blanco')) return 'galleta vainilla chips chocolate blanco';
@@ -313,30 +324,15 @@ function transformPedidos(rows) {
     const estadoNorm = normalizeText(estadoRaw);
     const isCancelado = estadoNorm.includes('cancel') || estadoNorm.includes('anulad');
     const estado = isCancelado ? 'Cancelado' : normalizeEstado(estadoRaw);
-    const estadoPago = normalizeEstadoPago(r.estadopago || r.estado_pago || 'Pendiente de comprobante');
-
-    pedidos.push({
-      folio,
-      cliente_nombre: nombre,
-      cliente_telefono: telefono,
-      fecha_solicitada: toDate(r.fechasolicitada || r.fecha_solicitada || r.fecha || r.fecha_entrega),
-      metodo_pago: r.metodopago || r.metodo_pago || 'Transferencia bancaria',
-      estado,
-      estado_pago: estadoPago,
-      total_estimado: isCancelado ? 0 : total,
-      total_estimado_original: total,
-      observacion: r.observacion || r.obs || '',
-      observacion_interna: r.observacioninterna || r.observacion_interna || '',
-      origen: r.origen || 'Migracion Google Sheets',
-    });
+    const estadoPago = normalizeEstadoPago(r.estadopago || r.estado_pago || r.estado_de_pago || 'Pendiente de comprobante');
 
     const detalle = parseDetalleJson(r.productosdetallejson || r.productos_detalle_json || r.detallejson || r.detalle_json);
+    let pedidoItems = [];
     if (Array.isArray(detalle) && detalle.length) {
-      detalle.forEach((p) => {
+      pedidoItems = detalle.map((p) => {
         const cantidad = Number(p.cantidad) || 1;
         const subtotal = Math.round(Number(p.subtotal) || (Number(p.precio) || 0) * cantidad);
-        items.push({
-          folio,
+        return {
           producto_id_origen: p.id || '',
           nombre_snapshot: p.nombre || '',
           nombre_normalizado: normalizeProductName(p.nombre || ''),
@@ -345,14 +341,39 @@ function transformPedidos(rows) {
           precio_snapshot: Math.round(Number(p.precio) || (subtotal && cantidad ? subtotal / cantidad : 0)),
           subtotal,
           requiere_revision: !p.nombre || !subtotal,
-        });
+        };
       });
     } else {
-      const productosTexto = r.productostexto || r.productos_texto || r.productos || r.detalle || '';
-      const parsed = splitProductosTexto(productosTexto);
-      if (!parsed.length) warnings.push(`Pedido ${folio} sin detalle de productos parseable.`);
-      parsed.forEach((item) => items.push({ folio, ...item }));
+      pedidoItems = splitProductosTexto(r.productostexto || r.productos_texto || r.productos || r.detalle || '');
     }
+
+    const sumItems = pedidoItems.reduce((sum, item) => sum + (Number(item.subtotal) || 0), 0);
+    if (!pedidoItems.length) warnings.push(`Pedido ${folio} sin detalle de productos parseable.`);
+    if (!isCancelado && total && sumItems && total !== sumItems) {
+      warnings.push(`Total distinto al detalle en ${folio}: total=${total}, items=${sumItems}`);
+    }
+
+    pedidos.push({
+      folio,
+      cliente_nombre: nombre,
+      cliente_telefono: telefono,
+      fecha_solicitada: toDate(r.fechasolicitada || r.fecha_solicitada || r.fecha || r.fecha_entrega),
+      metodo_pago: r.metodopago || r.metodo_pago || r.metodo_de_pago || 'Transferencia bancaria',
+      requiere_datos_transferencia: toBool(r.requiere_datos_transferencia, true),
+      entrega_separada: normalizeText(r.tipo_entrega).includes('separ'),
+      nota_entrega: r.tipo_entrega || '',
+      estado,
+      estado_pago: estadoPago,
+      total_estimado_original: total,
+      total_estimado: isCancelado ? 0 : total,
+      observacion: cleanHistoricalText(r.observacion || r.obs || ''),
+      observacion_interna: cleanHistoricalText(r.observacioninterna || r.observacion_interna || ''),
+      indicado_pago: cleanHistoricalText(r.indicacion_de_pago || r.indicado_pago || r.indicadopago || ''),
+      origen: r.origen || 'Migracion Google Sheets',
+      fecha_hora_registro: r.fecha_hora_registro || null,
+    });
+
+    pedidoItems.forEach((item) => items.push({ folio, ...item }));
   });
 
   return {
@@ -375,9 +396,9 @@ function normalizeEstado(value) {
 
 function normalizeEstadoPago(value) {
   const n = normalizeText(value);
+  if (n.includes('retirar')) return 'Pago al retirar';
   if (n.includes('comprobante')) return 'Comprobante recibido';
   if (n.includes('pagado') || n === 'pagado') return 'Pagado';
-  if (n.includes('retirar')) return 'Pago al retirar';
   return 'Pendiente de comprobante';
 }
 
@@ -421,18 +442,21 @@ function transformCompras(rows) {
       costo_base_unidad_base: toBaseQty(cantidadTotal, unidad) > 0 ? costoTotal / toBaseQty(cantidadTotal, unidad) : null,
       proveedor: r.proveedor || '',
       estado: r.estado || 'Disponible',
-      observacion: r.observacion || r.obs || '',
+      observacion: cleanHistoricalText(r.observacion || r.obs || ''),
       fecha_hora_registro: r.fecha_hora_registro || null,
     };
   }).filter((x) => x.insumo_original || x.insumo_normalizado);
 }
 
 function transformRecetas(rows) {
-  return rows.map((r) => {
+  const byProduct = new Map();
+  rows.forEach((r) => {
+    const producto = r.producto || '';
+    if (!producto) return;
     const ingredientes = parseDetalleJson(r.ingredientesjson || r.ingredientes_json || r.ingredientes);
-    return {
-      producto: r.producto || '',
-      producto_normalizado: normalizeProductName(r.producto || ''),
+    const item = {
+      producto,
+      producto_normalizado: normalizeProductName(producto),
       rendimiento: toNumber(r.rendimiento),
       unidad_salida: r.unidad_salida || 'unidades',
       ingredientes: Array.isArray(ingredientes) ? ingredientes.map((i) => ({
@@ -443,7 +467,13 @@ function transformRecetas(rows) {
       })) : [],
       fecha_hora_registro: r.fecha_hora_registro || null,
     };
-  }).filter((x) => x.producto);
+    const key = item.producto_normalizado;
+    const current = byProduct.get(key);
+    if (!current || String(item.fecha_hora_registro || '') >= String(current.fecha_hora_registro || '')) {
+      byProduct.set(key, item);
+    }
+  });
+  return Array.from(byProduct.values());
 }
 
 function transformDisponibilidad(rows) {
@@ -465,7 +495,7 @@ function transformProduccion(rows) {
     unidades_producidas: toNumber(r.unidades_producidas),
     costo_lote_total: Math.round(toNumber(r.costo_lote_total)),
     costo_unitario: toNumber(r.costo_unitario),
-    observacion: r.observacion || '',
+    observacion: cleanHistoricalText(r.observacion || ''),
     fecha_hora_registro: r.fecha_hora_registro || null,
   })).filter((x) => x.producto || x.id_produccion);
 }
@@ -526,7 +556,8 @@ function main() {
     },
     warnings: [
       ...pedidoData.warnings,
-      'Revisar nombres de productos históricos con errores de tipeo: chip/chips, nuece/nueces, ma a/masa.',
+      'Telefonos historicos antiguos se reemplazan por +56 9 3021 0411 / 56930210411 en textos operativos.',
+      'Super galleton 150 gr se mantiene como producto distinto a galletas de 80 g.',
       'Los pedidos cancelados se transforman con total_estimado 0 y conservan total_estimado_original.',
       'Las compras en kg/l incluyen cantidad_base convertida a g/ml para stock.',
       'Disponibilidad y producción no tienen registros si el CSV solo trae encabezados.',
