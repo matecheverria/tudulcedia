@@ -2,6 +2,7 @@
 -- Fase 1: preparacion sin cambiar produccion.
 
 create extension if not exists pgcrypto;
+create extension if not exists unaccent;
 
 -- =========================
 -- Utilidades
@@ -14,11 +15,6 @@ immutable
 as $$
   select trim(regexp_replace(lower(unaccent(coalesce(input, ''))), '\s+', ' ', 'g'))
 $$;
-
--- Si unaccent no existe en el proyecto, ejecutar:
--- create extension if not exists unaccent;
-
-create extension if not exists unaccent;
 
 -- =========================
 -- Catalogo y clientes
