@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Tu Dulce Día | Catálogo Supabase Test</title>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff8ec;color:#563820;line-height:1.45}
+    .wrap{width:min(960px,calc(100% - 28px));margin:0 auto;padding:36px 0 60px}
+    .card{background:#fffdf8;border:1px solid #ead8bd;border-radius:24px;padding:24px;box-shadow:0 14px 34px #56382022}
+    h1{margin:0 0 10px;font-size:clamp(1.8rem,4vw,3rem)}
+    p{color:#7d5b3f;font-weight:750}
+    .notice{background:#fff3df;border:1px solid #ead8bd;border-radius:18px;padding:14px 16px;margin:18px 0;color:#6a4228;font-weight:850}
+    .notice strong{color:#9f3d31}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+    a{border-radius:999px;padding:13px 18px;text-decoration:none;font-weight:1000;display:inline-flex;align-items:center;justify-content:center}
+    .primary{background:#b8653b;color:#fff}.secondary{background:#f1dfc8;color:#563820}.green{background:#48663f;color:#fff}
+    .steps{display:grid;gap:12px;margin-top:18px}.step{border:1px solid #ead8bd;border-radius:18px;padding:14px;background:#fff}
+    code{background:#fff3df;padding:2px 6px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h1>Catálogo Supabase Test</h1>
+      <p>Esta página es un puente de fase 2. El catálogo principal productivo todavía no fue modificado.</p>
+
+      <div class="notice">
+        <strong>Estado:</strong> la lectura desde Supabase ya está validada en la página aislada. El siguiente paso será integrar carrito y pedido en una copia controlada del catálogo.
+      </div>
+
+      <div class="actions">
+        <a class="primary" href="supabase-catalogo-test.html">Ver productos desde Supabase</a>
+        <a class="secondary" href="./">Volver al catálogo productivo</a>
+        <a class="green" href="panel-td-privado-2026.html">Panel privado</a>
+      </div>
+
+      <div class="steps">
+        <div class="step"><strong>1.</strong> Supabase ya entrega <code>productos activos</code> con RLS y permisos correctos.</div>
+        <div class="step"><strong>2.</strong> El catálogo productivo sigue usando Apps Script y Google Sheets.</div>
+        <div class="step"><strong>3.</strong> La integración de carrito/pedido se hará como cambio separado para reducir riesgo.</div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
