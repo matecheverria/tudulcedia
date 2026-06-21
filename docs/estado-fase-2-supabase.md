@@ -18,6 +18,16 @@ Validar una migracion gradual donde Supabase entregue el catalogo, manteniendo e
 - El flujo de prueba registra pedidos en el backend actual.
 - El mensaje de WhatsApp fue corregido para que sea escrito desde el cliente hacia el negocio.
 
+## Validacion de pedidos test
+
+Validado en Google Sheets con tres casos reales de prueba:
+
+- `TD-0013`: pedido de galletas.
+- `TD-0014`: pedido de pan de masa madre.
+- `TD-0015`: pedido mixto pan + galletas.
+
+Resultado: los tres pedidos llegaron correctamente a la hoja de pedidos.
+
 ## Archivos de prueba
 
 - `supabase-catalogo-test.html`: lectura aislada desde Supabase.
@@ -33,12 +43,6 @@ Validar una migracion gradual donde Supabase entregue el catalogo, manteniendo e
 
 ## Proximo paso recomendado
 
-Antes de tocar `index.html`, hacer una revision final del flujo test completo:
+Preparar una copia productiva controlada del catalogo principal usando Supabase para catalogo y el backend actual para registro de pedidos.
 
-1. Pedido solo galletas.
-2. Pedido solo pan.
-3. Pedido mixto.
-4. Validar folio y datos en dashboard.
-5. Validar mensaje WhatsApp.
-
-Cuando esos tres casos esten aprobados, se puede preparar una copia productiva controlada o aplicar el cambio final al catalogo principal.
+Despues de revisar esa copia con el diseño real, se puede decidir si se reemplaza `index.html` o si se mantiene como version paralela por mas tiempo.
