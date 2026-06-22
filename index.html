@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <iframe id="catalogFrame" src="index-supabase-final.html?v=20260621-whatsapp-mixto-1" title="Catálogo Tu Dulce Día"></iframe>
+  <iframe id="catalogFrame" src="index-supabase-final.html?v=20260621-phone-country-1" title="Catálogo Tu Dulce Día"></iframe>
   <main class="fallback" id="fallback"><section class="card"><h1>Tu Dulce Día</h1><p>No pudimos cargar el catálogo automáticamente.</p><p><a href="index-supabase-final.html">Abrir catálogo</a></p></section></main>
   <script>
     const frame=document.getElementById('catalogFrame');
@@ -37,11 +37,32 @@
         `);
       }catch(e){}
     }
+    function patchPhone(){
+      try{
+        const d=frame.contentDocument,w=frame.contentWindow;
+        if(!d||!w||w.__tdPhoneCountryPatch)return;
+        const phone=d.getElementById('phone');
+        if(!phone)return;
+        const label=phone.closest('label');
+        if(!label)return;
+        label.innerHTML='WhatsApp<div style="display:grid;grid-template-columns:140px 1fr;gap:8px"><select id="countryCode"><option value="56" selected>Chile +56</option><option value="54">Argentina +54</option><option value="51">Perú +51</option><option value="591">Bolivia +591</option><option value="57">Colombia +57</option><option value="58">Venezuela +58</option><option value="55">Brasil +55</option><option value="52">México +52</option><option value="1">EE.UU./Canadá +1</option><option value="34">España +34</option><option value="">Otro</option></select><input id="phone" inputmode="tel" placeholder="9 1234 5678"></div>';
+        const oldBuild=w.buildPayload;
+        w.buildPayload=function(){
+          const payload=oldBuild();
+          const cc=d.getElementById('countryCode')?.value||'';
+          const raw=(d.getElementById('phone')?.value||'').replace(/[^0-9]/g,'');
+          payload.telefonoCliente = cc ? ('+'+cc+raw) : raw;
+          return payload;
+        };
+        w.__tdPhoneCountryPatch=true;
+      }catch(e){}
+    }
     function polish(){
       try{
         const d=frame.contentDocument;
         if(!d)return;
         patchWhatsapp();
+        patchPhone();
         const lead=d.querySelector('section.card .lead');
         if(lead&&!d.getElementById('tdAnticipacionLead')){
           const p=d.createElement('p');
