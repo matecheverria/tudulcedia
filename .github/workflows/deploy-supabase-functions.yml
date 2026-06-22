@@ -1,0 +1,48 @@
+name: Deploy Supabase Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-supabase-functions.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      MAIL_FROM: ${{ secrets.MAIL_FROM }}
+      MAIL_TO: ${{ secrets.MAIL_TO }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Validate secrets
+        run: |
+          test -n "$SUPABASE_ACCESS_TOKEN"
+          test -n "$PROJECT_ID"
+          test -n "$RESEND_API_KEY"
+          test -n "$MAIL_FROM"
+          test -n "$MAIL_TO"
+
+      - name: Set function secrets
+        run: |
+          supabase secrets set RESEND_API_KEY="$RESEND_API_KEY" --project-ref "$PROJECT_ID"
+          supabase secrets set MAIL_FROM="$MAIL_FROM" --project-ref "$PROJECT_ID"
+          supabase secrets set MAIL_TO="$MAIL_TO" --project-ref "$PROJECT_ID"
+
+      - name: Deploy email function
+        run: supabase functions deploy enviar-correo-pedido --project-ref "$PROJECT_ID"
